@@ -19,9 +19,10 @@ class ConfigCommandsTest extends TestCase
         config()->set('config-guard.application_config', ['config/payment.php']);
 
         $exitCode = Artisan::call('config:lint', ['--path' => $base]);
+        $output = Artisan::output();
 
         $this->assertSame(0, $exitCode);
-        $this->assertStringContainsString('Configuration contract is valid.', Artisan::output());
+        $this->assertStringContainsString('Configuration contract is valid.', $output);
 
         $this->removeProject($base);
     }
@@ -37,9 +38,10 @@ class ConfigCommandsTest extends TestCase
         config()->set('config-guard.application_config', []);
 
         $exitCode = Artisan::call('config:lint', ['--path' => $base]);
+        $output = Artisan::output();
 
         $this->assertSame(1, $exitCode);
-        $this->assertStringContainsString('env() used outside config/: app/Checkout.php', Artisan::output());
+        $this->assertStringContainsString('env() used outside config/: app/Checkout.php', $output);
 
         $this->removeProject($base);
     }
@@ -55,11 +57,12 @@ class ConfigCommandsTest extends TestCase
         config()->set('config-guard.application_config', ['config/payment.php']);
 
         $exitCode = Artisan::call('config:lint', ['--path' => $base]);
+        $output = Artisan::output();
 
         $this->assertSame(1, $exitCode);
         $this->assertStringContainsString(
             'STRIPE_SECRET is referenced by application config but missing from .env.example',
-            Artisan::output(),
+            $output,
         );
 
         $this->removeProject($base);
@@ -75,11 +78,12 @@ class ConfigCommandsTest extends TestCase
         config()->set('config-guard.application_config', []);
 
         $exitCode = Artisan::call('config:lint', ['--path' => $base]);
+        $output = Artisan::output();
 
         $this->assertSame(1, $exitCode);
         $this->assertStringContainsString(
             '.env.example contains duplicate key STRIPE_SECRET on lines 1, 2',
-            Artisan::output(),
+            $output,
         );
 
         $this->removeProject($base);
@@ -95,10 +99,11 @@ class ConfigCommandsTest extends TestCase
         config()->set('payment.stripe.secret', null);
 
         $exitCode = Artisan::call('config:validate');
+        $output = Artisan::output();
 
         $this->assertSame(1, $exitCode);
-        $this->assertStringContainsString('✗ payment.stripe.secret', Artisan::output());
-        $this->assertStringContainsString('Required configuration is missing.', Artisan::output());
+        $this->assertStringContainsString('✗ payment.stripe.secret', $output);
+        $this->assertStringContainsString('Required configuration is missing.', $output);
     }
 
     public function test_validate_command_succeeds_when_required_config_is_present(): void
@@ -111,10 +116,11 @@ class ConfigCommandsTest extends TestCase
         config()->set('payment.stripe.secret', 'secret');
 
         $exitCode = Artisan::call('config:validate');
+        $output = Artisan::output();
 
         $this->assertSame(0, $exitCode);
-        $this->assertStringContainsString('✓ payment.stripe.secret', Artisan::output());
-        $this->assertStringContainsString('Required configuration is valid.', Artisan::output());
+        $this->assertStringContainsString('✓ payment.stripe.secret', $output);
+        $this->assertStringContainsString('Required configuration is valid.', $output);
     }
 
     /** @param array<string, string> $files */
