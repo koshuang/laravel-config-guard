@@ -22,6 +22,22 @@ class ConfigScannerTest extends TestCase
         @rmdir($base);
     }
 
+    public function test_it_finds_named_argument_env_references(): void
+    {
+        $base = sys_get_temp_dir().'/config-guard-'.bin2hex(random_bytes(4));
+        mkdir($base.'/config', 0777, true);
+        $path = $base.'/config/payment.php';
+        file_put_contents($path, "<?php return ['secret' => env(key: 'STRIPE_SECRET')];");
+
+        $references = (new ConfigScanner)->envReferences($path);
+
+        $this->assertArrayHasKey('STRIPE_SECRET', $references);
+
+        @unlink($path);
+        @rmdir($base.'/config');
+        @rmdir($base);
+    }
+
     public function test_it_finds_env_references_in_a_single_owned_config_file(): void
     {
         $base = sys_get_temp_dir().'/config-guard-'.bin2hex(random_bytes(4));
