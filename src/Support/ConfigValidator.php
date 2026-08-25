@@ -4,8 +4,9 @@ namespace Koshuang\LaravelConfigGuard\Support;
 
 class ConfigValidator
 {
-    /** @param list<string> $required
-     *  @return list<string>
+    /**
+     * @param  list<string>  $required
+     * @return list<string>
      */
     public function missing(array $required): array
     {
