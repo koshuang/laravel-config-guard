@@ -13,7 +13,7 @@ class ConfigScannerTest extends TestCase
         mkdir($base.'/config', 0777, true);
         file_put_contents($base.'/config/payment.php', "<?php return ['secret' => env('STRIPE_SECRET')];");
 
-        $references = new ConfigScanner()->envReferences($base.'/config');
+        $references = (new ConfigScanner)->envReferences($base.'/config');
 
         $this->assertArrayHasKey('STRIPE_SECRET', $references);
 
@@ -29,7 +29,7 @@ class ConfigScannerTest extends TestCase
         $path = $base.'/config/payment.php';
         file_put_contents($path, "<?php return ['secret' => env('STRIPE_SECRET')];");
 
-        $references = new ConfigScanner()->envReferences($path);
+        $references = (new ConfigScanner)->envReferences($path);
 
         $this->assertArrayHasKey('STRIPE_SECRET', $references);
 
@@ -46,7 +46,7 @@ class ConfigScannerTest extends TestCase
         file_put_contents($base.'/config/payment.php', "<?php return ['secret' => env('STRIPE_SECRET')];");
         file_put_contents($base.'/app/Checkout.php', "<?php env('STRIPE_SECRET');");
 
-        $violations = new ConfigScanner()->envUsageOutsideConfig($base);
+        $violations = (new ConfigScanner)->envUsageOutsideConfig($base);
 
         $this->assertCount(1, $violations);
         $this->assertStringEndsWith('app/Checkout.php', str_replace('\\', '/', $violations[0]));
