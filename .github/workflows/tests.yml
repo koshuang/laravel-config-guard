@@ -37,6 +37,27 @@ jobs:
 
       - run: composer test
 
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: pcov
+
+      - run: composer install --prefer-dist --no-interaction
+
+      - name: Run coverage
+        run: vendor/bin/phpunit --coverage-text=coverage.txt --colors=never
+
+      - name: Enforce 85% line coverage
+        run: |
+          cat coverage.txt
+          php -r '$text = file_get_contents("coverage.txt"); if (! preg_match("/Lines:\\s+([0-9.]+)%/", $text, $matches)) { fwrite(STDERR, "Unable to read line coverage.\n"); exit(2); } $coverage = (float) $matches[1]; echo "Line coverage: {$coverage}%\n"; if ($coverage < 85) { fwrite(STDERR, "Line coverage must be at least 85%.\n"); exit(1); }'
+
   static-analysis:
     runs-on: ubuntu-latest
 
