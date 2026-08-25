@@ -24,12 +24,21 @@ class LintConfigCommand extends Command
             }
         }
 
-        $references = $scanner->envReferences($basePath.'/config');
-        $exampleKeys = array_keys($env->keys($basePath.'/.env.example'));
-
         if (config('config-guard.lint.missing_example_keys', true)) {
+            $references = [];
+
+            foreach (config('config-guard.application_config', []) as $path) {
+                $fullPath = $basePath.'/'.ltrim($path, '/\\');
+
+                foreach ($scanner->envReferences($fullPath) as $key => $files) {
+                    $references[$key] = array_merge($references[$key] ?? [], $files);
+                }
+            }
+
+            $exampleKeys = array_keys($env->keys($basePath.'/.env.example'));
+
             foreach (array_diff(array_keys($references), $exampleKeys) as $key) {
-                $this->error("{$key} is referenced by config/ but missing from .env.example");
+                $this->error("{$key} is referenced by application config but missing from .env.example");
                 $failed = true;
             }
         }
