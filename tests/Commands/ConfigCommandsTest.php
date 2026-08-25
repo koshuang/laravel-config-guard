@@ -3,7 +3,7 @@
 namespace Koshuang\LaravelConfigGuard\Tests\Commands;
 
 use Illuminate\Foundation\Application;
-use Illuminate\Testing\PendingCommand;
+use Illuminate\Support\Facades\Artisan;
 use Koshuang\LaravelConfigGuard\Tests\TestCase;
 
 class ConfigCommandsTest extends TestCase
@@ -18,11 +18,10 @@ class ConfigCommandsTest extends TestCase
 
         config()->set('config-guard.application_config', ['config/payment.php']);
 
-        /** @var PendingCommand $command */
-        $command = $this->artisan('config:lint', ['--path' => $base]);
-        $command
-            ->expectsOutput('Configuration contract is valid.')
-            ->assertSuccessful();
+        $exitCode = Artisan::call('config:lint', ['--path' => $base]);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('Configuration contract is valid.', Artisan::output());
 
         $this->removeProject($base);
     }
@@ -37,11 +36,10 @@ class ConfigCommandsTest extends TestCase
 
         config()->set('config-guard.application_config', []);
 
-        /** @var PendingCommand $command */
-        $command = $this->artisan('config:lint', ['--path' => $base]);
-        $command
-            ->expectsOutputToContain('env() used outside config/: app/Checkout.php')
-            ->assertFailed();
+        $exitCode = Artisan::call('config:lint', ['--path' => $base]);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('env() used outside config/: app/Checkout.php', Artisan::output());
 
         $this->removeProject($base);
     }
@@ -56,11 +54,13 @@ class ConfigCommandsTest extends TestCase
 
         config()->set('config-guard.application_config', ['config/payment.php']);
 
-        /** @var PendingCommand $command */
-        $command = $this->artisan('config:lint', ['--path' => $base]);
-        $command
-            ->expectsOutputToContain('STRIPE_SECRET is referenced by application config but missing from .env.example')
-            ->assertFailed();
+        $exitCode = Artisan::call('config:lint', ['--path' => $base]);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString(
+            'STRIPE_SECRET is referenced by application config but missing from .env.example',
+            Artisan::output(),
+        );
 
         $this->removeProject($base);
     }
@@ -74,11 +74,13 @@ class ConfigCommandsTest extends TestCase
 
         config()->set('config-guard.application_config', []);
 
-        /** @var PendingCommand $command */
-        $command = $this->artisan('config:lint', ['--path' => $base]);
-        $command
-            ->expectsOutputToContain('.env.example contains duplicate key STRIPE_SECRET on lines 1, 2')
-            ->assertFailed();
+        $exitCode = Artisan::call('config:lint', ['--path' => $base]);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString(
+            '.env.example contains duplicate key STRIPE_SECRET on lines 1, 2',
+            Artisan::output(),
+        );
 
         $this->removeProject($base);
     }
@@ -92,12 +94,11 @@ class ConfigCommandsTest extends TestCase
         config()->set('config-guard.required.production', ['payment.stripe.secret']);
         config()->set('payment.stripe.secret', null);
 
-        /** @var PendingCommand $command */
-        $command = $this->artisan('config:validate');
-        $command
-            ->expectsOutput('✗ payment.stripe.secret')
-            ->expectsOutput('Required configuration is missing.')
-            ->assertFailed();
+        $exitCode = Artisan::call('config:validate');
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('✗ payment.stripe.secret', Artisan::output());
+        $this->assertStringContainsString('Required configuration is missing.', Artisan::output());
     }
 
     public function test_validate_command_succeeds_when_required_config_is_present(): void
@@ -109,12 +110,11 @@ class ConfigCommandsTest extends TestCase
         config()->set('config-guard.required.production', ['payment.stripe.secret']);
         config()->set('payment.stripe.secret', 'secret');
 
-        /** @var PendingCommand $command */
-        $command = $this->artisan('config:validate');
-        $command
-            ->expectsOutput('✓ payment.stripe.secret')
-            ->expectsOutput('Required configuration is valid.')
-            ->assertSuccessful();
+        $exitCode = Artisan::call('config:validate');
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('✓ payment.stripe.secret', Artisan::output());
+        $this->assertStringContainsString('Required configuration is valid.', Artisan::output());
     }
 
     /** @param array<string, string> $files */
