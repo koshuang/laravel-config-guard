@@ -56,6 +56,10 @@ class ConfigScanner
     /** @return list<string> */
     private function phpFiles(string $path, array $excluded = []): array
     {
+        if (is_file($path)) {
+            return pathinfo($path, PATHINFO_EXTENSION) === 'php' ? [$path] : [];
+        }
+
         if (! is_dir($path)) {
             return [];
         }
