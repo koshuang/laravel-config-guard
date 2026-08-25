@@ -12,7 +12,7 @@ class EnvFileInspectorTest extends TestCase
         $path = tempnam(sys_get_temp_dir(), 'env');
         file_put_contents($path, "APP_ENV=local\nSTRIPE_SECRET=one\nSTRIPE_SECRET=two\n");
 
-        $duplicates = (new EnvFileInspector())->duplicates($path);
+        $duplicates = new EnvFileInspector()->duplicates($path);
 
         $this->assertSame(['STRIPE_SECRET' => [2, 3]], $duplicates);
 
