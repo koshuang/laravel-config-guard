@@ -2,6 +2,7 @@
 
 namespace Koshuang\LaravelConfigGuard\Tests\Commands;
 
+use Illuminate\Foundation\Application;
 use Illuminate\Testing\PendingCommand;
 use Koshuang\LaravelConfigGuard\Tests\TestCase;
 
@@ -17,9 +18,8 @@ class ConfigCommandsTest extends TestCase
 
         config()->set('config-guard.application_config', ['config/payment.php']);
 
+        /** @var PendingCommand $command */
         $command = $this->artisan('config:lint', ['--path' => $base]);
-        self::assertInstanceOf(PendingCommand::class, $command);
-
         $command
             ->expectsOutput('Configuration contract is valid.')
             ->assertSuccessful();
@@ -37,9 +37,8 @@ class ConfigCommandsTest extends TestCase
 
         config()->set('config-guard.application_config', []);
 
+        /** @var PendingCommand $command */
         $command = $this->artisan('config:lint', ['--path' => $base]);
-        self::assertInstanceOf(PendingCommand::class, $command);
-
         $command
             ->expectsOutputToContain('env() used outside config/: app/Checkout.php')
             ->assertFailed();
@@ -57,9 +56,8 @@ class ConfigCommandsTest extends TestCase
 
         config()->set('config-guard.application_config', ['config/payment.php']);
 
+        /** @var PendingCommand $command */
         $command = $this->artisan('config:lint', ['--path' => $base]);
-        self::assertInstanceOf(PendingCommand::class, $command);
-
         $command
             ->expectsOutputToContain('STRIPE_SECRET is referenced by application config but missing from .env.example')
             ->assertFailed();
@@ -76,9 +74,8 @@ class ConfigCommandsTest extends TestCase
 
         config()->set('config-guard.application_config', []);
 
+        /** @var PendingCommand $command */
         $command = $this->artisan('config:lint', ['--path' => $base]);
-        self::assertInstanceOf(PendingCommand::class, $command);
-
         $command
             ->expectsOutputToContain('.env.example contains duplicate key STRIPE_SECRET on lines 1, 2')
             ->assertFailed();
@@ -88,16 +85,15 @@ class ConfigCommandsTest extends TestCase
 
     public function test_validate_command_fails_when_required_config_is_missing(): void
     {
+        /** @var Application $application */
         $application = $this->app;
-        self::assertNotNull($application);
         $application->detectEnvironment(fn (): string => 'production');
 
         config()->set('config-guard.required.production', ['payment.stripe.secret']);
         config()->set('payment.stripe.secret', null);
 
+        /** @var PendingCommand $command */
         $command = $this->artisan('config:validate');
-        self::assertInstanceOf(PendingCommand::class, $command);
-
         $command
             ->expectsOutput('✗ payment.stripe.secret')
             ->expectsOutput('Required configuration is missing.')
@@ -106,16 +102,15 @@ class ConfigCommandsTest extends TestCase
 
     public function test_validate_command_succeeds_when_required_config_is_present(): void
     {
+        /** @var Application $application */
         $application = $this->app;
-        self::assertNotNull($application);
         $application->detectEnvironment(fn (): string => 'production');
 
         config()->set('config-guard.required.production', ['payment.stripe.secret']);
         config()->set('payment.stripe.secret', 'secret');
 
+        /** @var PendingCommand $command */
         $command = $this->artisan('config:validate');
-        self::assertInstanceOf(PendingCommand::class, $command);
-
         $command
             ->expectsOutput('✓ payment.stripe.secret')
             ->expectsOutput('Required configuration is valid.')
