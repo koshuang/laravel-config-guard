@@ -53,7 +53,10 @@ class ConfigScanner
         return $violations;
     }
 
-    /** @return list<string> */
+    /**
+     * @param  list<string>  $excluded
+     * @return list<string>
+     */
     private function phpFiles(string $path, array $excluded = []): array
     {
         if (is_file($path)) {
@@ -75,8 +78,16 @@ class ConfigScanner
 
             $pathname = $file->getPathname();
             $relative = ltrim(str_replace(rtrim($path, DIRECTORY_SEPARATOR), '', $pathname), DIRECTORY_SEPARATOR);
+            $isExcluded = false;
 
-            if (collect($excluded)->contains(fn (string $dir) => $relative === $dir || str_starts_with($relative, $dir.DIRECTORY_SEPARATOR))) {
+            foreach ($excluded as $dir) {
+                if ($relative === $dir || str_starts_with($relative, $dir.DIRECTORY_SEPARATOR)) {
+                    $isExcluded = true;
+                    break;
+                }
+            }
+
+            if ($isExcluded) {
                 continue;
             }
 
