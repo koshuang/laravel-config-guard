@@ -39,8 +39,10 @@ Laravel Config Guard turns those cases into explicit CI or deployment failures.
 ## Installation
 
 ```bash
-composer require --dev koshuang/laravel-config-guard
+composer require koshuang/laravel-config-guard
 ```
+
+Install Laravel Config Guard as a regular dependency when `config:validate` runs in the production artifact. This keeps the deployment command available when production dependencies are installed with `composer install --no-dev`.
 
 The package uses Laravel package auto-discovery.
 
@@ -183,6 +185,13 @@ This rule is intentionally scoped to **application-owned** config files. Laravel
 
 `.env.example` is therefore treated as a discoverable catalog of the application's intended environment surface, not as a universal list of every env variable Laravel can read.
 
+Literal env references using either positional or named arguments are supported:
+
+```php
+env('STRIPE_SECRET');
+env(key: 'STRIPE_SECRET');
+```
+
 ### `lint.duplicate_env_keys`
 
 When enabled, configured env files may not contain the same key more than once.
@@ -247,11 +256,13 @@ Current rules:
 - application-owned env keys must exist in `.env.example`;
 - configured env files may not contain duplicate keys.
 
-You can lint a different project root with:
+You can lint a different Laravel project root with:
 
 ```bash
 php artisan config:lint --path=/path/to/project
 ```
+
+When `--path` is supplied, Laravel Config Guard loads that target project's `config/config-guard.php` and merges it over the package defaults. The target project's `application_config`, `env_files`, and lint toggles therefore control the scan instead of the currently booted application's settings.
 
 Example success:
 
@@ -468,8 +479,6 @@ The repository CI currently validates:
 - Larastan / PHPStan level 9;
 - Laravel Pint;
 - a minimum 85% line coverage gate.
-
-Current measured line coverage is 91.67% (99/108 lines).
 
 ## Compatibility
 
