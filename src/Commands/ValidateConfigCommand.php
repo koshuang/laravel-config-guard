@@ -14,7 +14,10 @@ class ValidateConfigCommand extends Command
     public function handle(ConfigValidator $validator): int
     {
         $environment = app()->environment();
-        $required = config("config-guard.required.{$environment}", []);
+        $configured = config("config-guard.required.{$environment}", []);
+        $required = is_array($configured)
+            ? array_values(array_filter($configured, 'is_string'))
+            : [];
         $missing = $validator->missing($required);
 
         foreach ($required as $key) {
