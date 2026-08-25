@@ -25,10 +25,22 @@ php artisan config:lint
 The initial rules check that:
 
 - `env()` is only used under `config/`.
-- Environment variables referenced by application config exist in `.env.example`.
+- Environment variables referenced by application-owned config exist in `.env.example`.
 - Configured env files do not contain duplicate keys.
 
-Example:
+Laravel itself supports many optional environment overrides that do not need to appear in every application's `.env.example`. To avoid treating framework options as application contract, explicitly list the config files your application owns:
+
+```php
+// config/config-guard.php
+return [
+    'application_config' => [
+        'config/payment.php',
+        'config/order-import.php',
+    ],
+];
+```
+
+For example:
 
 ```php
 // config/payment.php
@@ -101,6 +113,10 @@ A missing required config value returns a non-zero exit code so the deployment c
 ```
 
 `.env.example` provides discoverability. Laravel config provides the application boundary. Deployment validation verifies that the current environment satisfies the contract.
+
+## Support
+
+Laravel 12 and 13 on PHP 8.2+ (subject to each Laravel version's own PHP requirements).
 
 ## License
 
