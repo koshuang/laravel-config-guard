@@ -14,20 +14,25 @@ class LintConfigCommand extends Command
 
     public function handle(ConfigScanner $scanner, EnvFileInspector $env): int
     {
-        $basePath = $this->option('path') ?: base_path();
+        $pathOption = $this->option('path');
+        $basePath = is_string($pathOption) && $pathOption !== '' ? $pathOption : base_path();
         $failed = false;
 
-        if (config('config-guard.lint.env_outside_config', true)) {
+        if ((bool) config('config-guard.lint.env_outside_config', true)) {
             foreach ($scanner->envUsageOutsideConfig($basePath) as $file) {
                 $this->error('env() used outside config/: '.$this->relative($basePath, $file));
                 $failed = true;
             }
         }
 
-        if (config('config-guard.lint.missing_example_keys', true)) {
+        if ((bool) config('config-guard.lint.missing_example_keys', true)) {
             $references = [];
+            $configuredPaths = config('config-guard.application_config', []);
+            $applicationConfig = is_array($configuredPaths)
+                ? array_values(array_filter($configuredPaths, 'is_string'))
+                : [];
 
-            foreach (config('config-guard.application_config', []) as $path) {
+            foreach ($applicationConfig as $path) {
                 $fullPath = $basePath.'/'.ltrim($path, '/\\');
 
                 foreach ($scanner->envReferences($fullPath) as $key => $files) {
@@ -43,8 +48,13 @@ class LintConfigCommand extends Command
             }
         }
 
-        if (config('config-guard.lint.duplicate_env_keys', true)) {
-            foreach (config('config-guard.env_files', ['.env.example', '.env.testing']) as $filename) {
+        if ((bool) config('config-guard.lint.duplicate_env_keys', true)) {
+            $configuredFiles = config('config-guard.env_files', ['.env.example', '.env.testing']);
+            $envFiles = is_array($configuredFiles)
+                ? array_values(array_filter($configuredFiles, 'is_string'))
+                : [];
+
+            foreach ($envFiles as $filename) {
                 foreach ($env->duplicates($basePath.'/'.$filename) as $key => $lines) {
                     $this->error(sprintf('%s contains duplicate key %s on lines %s', $filename, $key, implode(', ', $lines)));
                     $failed = true;
