@@ -11,7 +11,7 @@ class ConfigValidatorTest extends TestCase
         config()->set('payment.stripe.secret', 'secret');
         config()->set('payment.stripe.webhook_secret', null);
 
-        $missing = (new ConfigValidator())->missing([
+        $missing = new ConfigValidator()->missing([
             'payment.stripe.secret',
             'payment.stripe.webhook_secret',
         ]);
