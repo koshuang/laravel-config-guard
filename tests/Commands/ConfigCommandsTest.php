@@ -3,7 +3,9 @@
 namespace Koshuang\LaravelConfigGuard\Tests\Commands;
 
 use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Bootstrap\LoadConfiguration;
 use Illuminate\Support\Facades\Artisan;
+use Koshuang\LaravelConfigGuard\Support\ConfigValidator;
 use Koshuang\LaravelConfigGuard\Tests\TestCase;
 
 class ConfigCommandsTest extends TestCase
@@ -136,6 +138,99 @@ class ConfigCommandsTest extends TestCase
         $this->assertSame(0, $exitCode);
         $this->assertStringContainsString('✓ payment.stripe.secret', $output);
         $this->assertStringContainsString('Required configuration is valid.', $output);
+    }
+
+    public function test_validator_uses_cached_config_instead_of_changed_raw_environment(): void
+    {
+        $configFile = config_path('config-guard-cache-test.php');
+        $environmentKey = 'CONFIG_GUARD_CACHE_SECRET';
+        $originalEnvironment = getenv($environmentKey);
+
+        file_put_contents(
+            $configFile,
+            "<?php return ['secret' => env('{$environmentKey}')];",
+        );
+        $this->setEnvironmentValue($environmentKey, 'cached-secret');
+
+        try {
+            Artisan::call('config:clear');
+            $this->assertSame(0, Artisan::call('config:cache'));
+            $this->assertFileExists($this->app->getCachedConfigPath());
+
+            $this->setEnvironmentValue($environmentKey, 'changed-after-cache');
+            $this->reloadConfiguration();
+
+            $this->assertTrue($this->app->configurationIsCached());
+            $this->assertSame('cached-secret', config('config-guard-cache-test.secret'));
+
+            /** @var ConfigValidator $validator */
+            $validator = $this->app->make(ConfigValidator::class);
+            $this->assertSame([], $validator->missing(['config-guard-cache-test.secret']));
+        } finally {
+            Artisan::call('config:clear');
+            @unlink($configFile);
+            $this->restoreEnvironmentValue($environmentKey, $originalEnvironment);
+        }
+    }
+
+    public function test_validator_reports_missing_value_from_cached_config_even_if_env_is_added_later(): void
+    {
+        $configFile = config_path('config-guard-cache-missing-test.php');
+        $environmentKey = 'CONFIG_GUARD_CACHE_MISSING_SECRET';
+        $originalEnvironment = getenv($environmentKey);
+
+        file_put_contents(
+            $configFile,
+            "<?php return ['secret' => env('{$environmentKey}')];",
+        );
+        $this->restoreEnvironmentValue($environmentKey, false);
+
+        try {
+            Artisan::call('config:clear');
+            $this->assertSame(0, Artisan::call('config:cache'));
+
+            $this->setEnvironmentValue($environmentKey, 'added-after-cache');
+            $this->reloadConfiguration();
+
+            $this->assertTrue($this->app->configurationIsCached());
+            $this->assertNull(config('config-guard-cache-missing-test.secret'));
+
+            /** @var ConfigValidator $validator */
+            $validator = $this->app->make(ConfigValidator::class);
+            $this->assertSame(
+                ['config-guard-cache-missing-test.secret'],
+                $validator->missing(['config-guard-cache-missing-test.secret']),
+            );
+        } finally {
+            Artisan::call('config:clear');
+            @unlink($configFile);
+            $this->restoreEnvironmentValue($environmentKey, $originalEnvironment);
+        }
+    }
+
+    private function reloadConfiguration(): void
+    {
+        $this->app->forgetInstance('config');
+        (new LoadConfiguration)->bootstrap($this->app);
+    }
+
+    private function setEnvironmentValue(string $key, string $value): void
+    {
+        putenv("{$key}={$value}");
+        $_ENV[$key] = $value;
+        $_SERVER[$key] = $value;
+    }
+
+    private function restoreEnvironmentValue(string $key, string|false $value): void
+    {
+        if ($value === false) {
+            putenv($key);
+            unset($_ENV[$key], $_SERVER[$key]);
+
+            return;
+        }
+
+        $this->setEnvironmentValue($key, $value);
     }
 
     /** @param array<string, string> $files */
