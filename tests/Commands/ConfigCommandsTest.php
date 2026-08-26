@@ -142,6 +142,8 @@ class ConfigCommandsTest extends TestCase
 
     public function test_validator_uses_cached_config_instead_of_changed_raw_environment(): void
     {
+        /** @var Application $application */
+        $application = $this->app;
         $configFile = config_path('config-guard-cache-test.php');
         $environmentKey = 'CONFIG_GUARD_CACHE_SECRET';
         $originalEnvironment = getenv($environmentKey);
@@ -155,16 +157,16 @@ class ConfigCommandsTest extends TestCase
         try {
             Artisan::call('config:clear');
             $this->assertSame(0, Artisan::call('config:cache'));
-            $this->assertFileExists($this->app->getCachedConfigPath());
+            $this->assertFileExists($application->getCachedConfigPath());
 
             $this->setEnvironmentValue($environmentKey, 'changed-after-cache');
-            $this->reloadConfiguration();
+            $this->reloadConfiguration($application);
 
-            $this->assertTrue($this->app->configurationIsCached());
+            $this->assertTrue($application->configurationIsCached());
             $this->assertSame('cached-secret', config('config-guard-cache-test.secret'));
 
             /** @var ConfigValidator $validator */
-            $validator = $this->app->make(ConfigValidator::class);
+            $validator = $application->make(ConfigValidator::class);
             $this->assertSame([], $validator->missing(['config-guard-cache-test.secret']));
         } finally {
             Artisan::call('config:clear');
@@ -175,6 +177,8 @@ class ConfigCommandsTest extends TestCase
 
     public function test_validator_reports_missing_value_from_cached_config_even_if_env_is_added_later(): void
     {
+        /** @var Application $application */
+        $application = $this->app;
         $configFile = config_path('config-guard-cache-missing-test.php');
         $environmentKey = 'CONFIG_GUARD_CACHE_MISSING_SECRET';
         $originalEnvironment = getenv($environmentKey);
@@ -190,13 +194,13 @@ class ConfigCommandsTest extends TestCase
             $this->assertSame(0, Artisan::call('config:cache'));
 
             $this->setEnvironmentValue($environmentKey, 'added-after-cache');
-            $this->reloadConfiguration();
+            $this->reloadConfiguration($application);
 
-            $this->assertTrue($this->app->configurationIsCached());
+            $this->assertTrue($application->configurationIsCached());
             $this->assertNull(config('config-guard-cache-missing-test.secret'));
 
             /** @var ConfigValidator $validator */
-            $validator = $this->app->make(ConfigValidator::class);
+            $validator = $application->make(ConfigValidator::class);
             $this->assertSame(
                 ['config-guard-cache-missing-test.secret'],
                 $validator->missing(['config-guard-cache-missing-test.secret']),
@@ -208,10 +212,10 @@ class ConfigCommandsTest extends TestCase
         }
     }
 
-    private function reloadConfiguration(): void
+    private function reloadConfiguration(Application $application): void
     {
-        $this->app->forgetInstance('config');
-        (new LoadConfiguration)->bootstrap($this->app);
+        $application->forgetInstance('config');
+        (new LoadConfiguration)->bootstrap($application);
     }
 
     private function setEnvironmentValue(string $key, string $value): void
