@@ -36,6 +36,65 @@ Common failure modes include:
 
 Laravel Config Guard turns those cases into explicit CI or deployment failures.
 
+## Real-world example
+
+A complete consumer integration is available in [`koshuang/laravel-hexagonal-architecture`](https://github.com/koshuang/laravel-hexagonal-architecture).
+
+That project uses Laravel Config Guard for a real application-owned setting: the Account module's maximum money-transfer threshold.
+
+The integration keeps the configuration boundary explicit:
+
+```text
+ACCOUNT_MAXIMUM_TRANSFER_THRESHOLD
+              ↓
+       config/transfer.php
+              ↓
+        Infrastructure DI
+              ↓
+   MoneyTransferProperties
+              ↓
+       SendMoneyService
+```
+
+The application layer never reads `env()` or Laravel `config()` directly. The environment variable is adapted into Laravel configuration first, then the Infrastructure layer validates and injects the resolved value into the application service.
+
+The example also enables all current lint rules:
+
+```php
+'lint' => [
+    'env_outside_config' => true,
+    'missing_example_keys' => true,
+    'duplicate_env_keys' => true,
+],
+```
+
+and declares the application-owned config plus required resolved value:
+
+```php
+'application_config' => [
+    'config/transfer.php',
+],
+
+'required' => [
+    'production' => [
+        'transfer.maximum_transfer_threshold',
+    ],
+],
+```
+
+Its CI runs both commands:
+
+```bash
+php artisan config:lint
+php artisan config:validate
+```
+
+This means pull requests fail if application code starts using `env()` outside `config/`, an application-owned env key is missing from `.env.example`, a configured env file contains duplicate keys, or required resolved configuration is missing.
+
+The integration was also used as the consumer smoke test for `v0.1.0`, exercising package auto-discovery, Git-based Composer installation, configuration linting, deployment validation, static analysis, coding standards, architecture validation, and the application's test suite together.
+
+See the implementation in [`koshuang/laravel-hexagonal-architecture`](https://github.com/koshuang/laravel-hexagonal-architecture) and the original integration PR, [`#12`](https://github.com/koshuang/laravel-hexagonal-architecture/pull/12).
+
 ## Installation
 
 ```bash
