@@ -29,6 +29,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Testbench 10 targets Laravel 12; Testbench 11 targets Laravel 13.
+          # Laravel 13 requires PHP 8.3+, so PHP 8.2 is intentionally covered only with Testbench 10.
           - php: '8.2'
             testbench: '^10.0'
           - php: '8.3'
@@ -36,6 +38,8 @@ jobs:
           - php: '8.3'
             testbench: '^11.0'
           - php: '8.4'
+            testbench: '^11.0'
+          - php: '8.5'
             testbench: '^11.0'
 
     name: PHP ${{ matrix.php }} / Testbench ${{ matrix.testbench }}
@@ -53,6 +57,43 @@ jobs:
       - run: composer update --prefer-dist --no-interaction
 
       - run: composer test
+
+  lowest-supported:
+    name: Lowest supported dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - name: Select Laravel 12 / Testbench 10 compatibility line
+        run: composer require "orchestra/testbench:^10.0" --dev --no-update
+
+      - name: Install lowest supported dependencies
+        run: composer update --prefer-lowest --prefer-stable --prefer-dist --no-interaction
+
+      - run: composer test
+
+  dependency-audit:
+    name: Dependency security audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Resolve dependencies
+        run: composer update --prefer-dist --no-interaction
+
+      - run: composer audit
 
   coverage:
     runs-on: ubuntu-latest
