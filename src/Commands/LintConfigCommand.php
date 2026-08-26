@@ -15,19 +15,22 @@ class LintConfigCommand extends Command
     public function handle(ConfigScanner $scanner, EnvFileInspector $env): int
     {
         $pathOption = $this->option('path');
-        $basePath = is_string($pathOption) && $pathOption !== '' ? $pathOption : base_path();
+        $explicitPath = is_string($pathOption) && $pathOption !== '';
+        $basePath = $explicitPath ? $pathOption : base_path();
+        $guardConfig = $this->guardConfig($basePath, $explicitPath);
+        $lintConfig = isset($guardConfig['lint']) && is_array($guardConfig['lint']) ? $guardConfig['lint'] : [];
         $failed = false;
 
-        if ((bool) config('config-guard.lint.env_outside_config', true)) {
+        if ((bool) ($lintConfig['env_outside_config'] ?? true)) {
             foreach ($scanner->envUsageOutsideConfig($basePath) as $file) {
                 $this->error('env() used outside config/: '.$this->relative($basePath, $file));
                 $failed = true;
             }
         }
 
-        if ((bool) config('config-guard.lint.missing_example_keys', true)) {
+        if ((bool) ($lintConfig['missing_example_keys'] ?? true)) {
             $references = [];
-            $configuredPaths = config('config-guard.application_config', []);
+            $configuredPaths = $guardConfig['application_config'] ?? [];
             $applicationConfig = is_array($configuredPaths)
                 ? array_values(array_filter($configuredPaths, 'is_string'))
                 : [];
@@ -48,8 +51,8 @@ class LintConfigCommand extends Command
             }
         }
 
-        if ((bool) config('config-guard.lint.duplicate_env_keys', true)) {
-            $configuredFiles = config('config-guard.env_files', ['.env.example', '.env.testing']);
+        if ((bool) ($lintConfig['duplicate_env_keys'] ?? true)) {
+            $configuredFiles = $guardConfig['env_files'] ?? ['.env.example', '.env.testing'];
             $envFiles = is_array($configuredFiles)
                 ? array_values(array_filter($configuredFiles, 'is_string'))
                 : [];
@@ -69,6 +72,27 @@ class LintConfigCommand extends Command
         $this->info('Configuration contract is valid.');
 
         return self::SUCCESS;
+    }
+
+    /** @return array<string, mixed> */
+    private function guardConfig(string $basePath, bool $explicitPath): array
+    {
+        if (! $explicitPath) {
+            $configured = config('config-guard', []);
+
+            return is_array($configured) ? $configured : [];
+        }
+
+        $defaults = require __DIR__.'/../../config/config-guard.php';
+        $targetFile = rtrim($basePath, '/\\').'/config/config-guard.php';
+
+        if (! is_file($targetFile)) {
+            return $defaults;
+        }
+
+        $target = require $targetFile;
+
+        return is_array($target) ? array_replace_recursive($defaults, $target) : $defaults;
     }
 
     private function relative(string $basePath, string $file): string

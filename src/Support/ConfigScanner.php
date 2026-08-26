@@ -20,7 +20,7 @@ class ConfigScanner
                 continue;
             }
 
-            preg_match_all('/\benv\(\s*[\'\"]([A-Za-z_][A-Za-z0-9_]*)[\'\"]/', $content, $matches);
+            preg_match_all('/\benv\(\s*(?:key\s*:\s*)?[\'\"]([A-Za-z_][A-Za-z0-9_]*)[\'\"]/', $content, $matches);
 
             foreach ($matches[1] as $key) {
                 $references[$key][] = $file;

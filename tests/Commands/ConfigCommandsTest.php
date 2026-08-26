@@ -11,12 +11,11 @@ class ConfigCommandsTest extends TestCase
     public function test_lint_command_succeeds_for_valid_contract(): void
     {
         $base = $this->makeProject([
+            'config/config-guard.php' => "<?php return ['application_config' => ['config/payment.php']];",
             'config/payment.php' => '<?php return [\'secret\' => env(\'STRIPE_SECRET\')];',
             '.env.example' => "STRIPE_SECRET=\n",
             '.env.testing' => '',
         ]);
-
-        config()->set('config-guard.application_config', ['config/payment.php']);
 
         $exitCode = Artisan::call('config:lint', ['--path' => $base]);
         $output = Artisan::output();
@@ -35,8 +34,6 @@ class ConfigCommandsTest extends TestCase
             '.env.testing' => '',
         ]);
 
-        config()->set('config-guard.application_config', []);
-
         $exitCode = Artisan::call('config:lint', ['--path' => $base]);
         $output = Artisan::output();
 
@@ -46,15 +43,16 @@ class ConfigCommandsTest extends TestCase
         $this->removeProject($base);
     }
 
-    public function test_lint_command_fails_when_application_env_is_missing_from_example(): void
+    public function test_lint_command_loads_application_config_from_target_project(): void
     {
         $base = $this->makeProject([
+            'config/config-guard.php' => "<?php return ['application_config' => ['config/payment.php']];",
             'config/payment.php' => '<?php return [\'secret\' => env(\'STRIPE_SECRET\')];',
             '.env.example' => '',
             '.env.testing' => '',
         ]);
 
-        config()->set('config-guard.application_config', ['config/payment.php']);
+        config()->set('config-guard.application_config', []);
 
         $exitCode = Artisan::call('config:lint', ['--path' => $base]);
         $output = Artisan::output();
@@ -68,14 +66,31 @@ class ConfigCommandsTest extends TestCase
         $this->removeProject($base);
     }
 
+    public function test_lint_command_uses_target_env_file_configuration(): void
+    {
+        $base = $this->makeProject([
+            'config/config-guard.php' => "<?php return ['env_files' => ['.env.ci']];",
+            '.env.example' => "STRIPE_SECRET=one\nSTRIPE_SECRET=two\n",
+            '.env.testing' => '',
+            '.env.ci' => "API_KEY=one\nAPI_KEY=two\n",
+        ]);
+
+        $exitCode = Artisan::call('config:lint', ['--path' => $base]);
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('.env.ci contains duplicate key API_KEY on lines 1, 2', $output);
+        $this->assertStringNotContainsString('.env.example contains duplicate key STRIPE_SECRET', $output);
+
+        $this->removeProject($base);
+    }
+
     public function test_lint_command_fails_on_duplicate_env_keys(): void
     {
         $base = $this->makeProject([
             '.env.example' => "STRIPE_SECRET=one\nSTRIPE_SECRET=two\n",
             '.env.testing' => '',
         ]);
-
-        config()->set('config-guard.application_config', []);
 
         $exitCode = Artisan::call('config:lint', ['--path' => $base]);
         $output = Artisan::output();
