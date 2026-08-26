@@ -1,0 +1,19 @@
+name: markdown-lint
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  markdown-lint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: DavidAnson/markdownlint-cli2-action@v24.2.0

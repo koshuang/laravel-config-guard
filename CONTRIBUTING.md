@@ -27,9 +27,10 @@ composer validate --strict
 composer test
 composer analyse
 composer format:test
+npx markdownlint-cli2@0.23.2 "**/*.md"
 ```
 
-These commands cover Composer metadata validation, the PHPUnit test suite, PHPStan/Larastan static analysis, and Pint formatting checks.
+These commands cover Composer metadata validation, the PHPUnit test suite, PHPStan/Larastan static analysis, Pint formatting checks, and Markdown linting. The Markdown command requires Node.js/npm and uses the repository-level `.markdownlint-cli2.jsonc` configuration.
 
 CI also enforces at least **85% line coverage**. Changes to executable behavior should include enough tests to keep the repository at or above that threshold. Prefer behavior and regression coverage over tests that only mirror implementation details.
 

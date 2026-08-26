@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD041 -->
 <!-- PR title must use an allowed Conventional Commit type: feat, fix, docs, refactor, perf, test, build, ci, chore, or revert. -->
 
 ## What changed
