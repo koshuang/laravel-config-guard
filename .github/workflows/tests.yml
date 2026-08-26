@@ -5,6 +5,23 @@ on:
   pull_request:
 
 jobs:
+  composer-validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - run: composer validate --strict
+
   test:
     runs-on: ubuntu-latest
 
